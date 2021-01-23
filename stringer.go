@@ -20,13 +20,14 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
-	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 
 	"github.com/pascaldekloe/name"
 )
@@ -43,15 +44,16 @@ func (af *arrayFlags) Set(value string) error {
 }
 
 var (
-	typeNames       = flag.String("type", "", "comma-separated list of type names; must be set")
-	sql             = flag.Bool("sql", false, "if true, the Scanner and Valuer interface will be implemented.")
-	json            = flag.Bool("json", false, "if true, json marshaling methods will be generated. Default: false")
-	yaml            = flag.Bool("yaml", false, "if true, yaml marshaling methods will be generated. Default: false")
-	text            = flag.Bool("text", false, "if true, text marshaling methods will be generated. Default: false")
-	output          = flag.String("output", "", "output file name; default srcdir/<type>_enumer.go")
-	transformMethod = flag.String("transform", "noop", "enum item name transformation method. Default: noop")
-	trimPrefix      = flag.String("trimprefix", "", "transform each item name by removing a prefix. Default: \"\"")
-	lineComment     = flag.Bool("linecomment", false, "use line comment text as printed text when present")
+	typeNames          = flag.String("type", "", "comma-separated list of type names; must be set")
+	sql                = flag.Bool("sql", false, "if true, the Scanner and Valuer interface will be implemented.")
+	json               = flag.Bool("json", false, "if true, json marshaling methods will be generated. Default: false")
+	yaml               = flag.Bool("yaml", false, "if true, yaml marshaling methods will be generated. Default: false")
+	text               = flag.Bool("text", false, "if true, text marshaling methods will be generated. Default: false")
+	output             = flag.String("output", "", "output file name; default srcdir/<type>_enumer.go")
+	transformMethod    = flag.String("transform", "noop", "enum item name transformation method. Default: noop")
+	transformUpperCase = flag.Bool("transformuppercase", false, "if true the enum item name will use the transform method in upper case. Default: false")
+	trimPrefix         = flag.String("trimprefix", "", "transform each item name by removing a prefix. Default: \"\"")
+	lineComment        = flag.Bool("linecomment", false, "use line comment text as printed text when present")
 )
 
 var comments arrayFlags
@@ -121,7 +123,7 @@ func main() {
 
 	// Run generate for each type.
 	for _, typeName := range types {
-		g.generate(typeName, *json, *yaml, *sql, *text, *transformMethod, *trimPrefix, *lineComment)
+		g.generate(typeName, *json, *yaml, *sql, *text, *transformMethod, *trimPrefix, *lineComment, *transformUpperCase)
 	}
 
 	// Format the output.
@@ -309,7 +311,7 @@ func (pkg *Package) check(fs *token.FileSet, astFiles []*ast.File) {
 	pkg.typesPkg = typesPkg
 }
 
-func (g *Generator) transformValueNames(values []Value, transformMethod string) {
+func (g *Generator) transformValueNames(values []Value, transformMethod string, transformUpperCase bool) {
 	var sep rune
 	switch transformMethod {
 	case "snake":
@@ -317,6 +319,13 @@ func (g *Generator) transformValueNames(values []Value, transformMethod string) 
 	case "kebab":
 		sep = '-'
 	default:
+		return
+	}
+
+	if transformUpperCase {
+		for i := range values {
+			values[i].name = strings.ToUpper(name.Delimit(values[i].name, sep))
+		}
 		return
 	}
 
@@ -341,7 +350,7 @@ func (g *Generator) replaceValuesWithLineComment(values []Value) {
 }
 
 // generate produces the String method for the named type.
-func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeSQL, includeText bool, transformMethod string, trimPrefix string, lineComment bool) {
+func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeSQL, includeText bool, transformMethod string, trimPrefix string, lineComment bool, transformUpperCase bool) {
 	values := make([]Value, 0, 100)
 	for _, file := range g.pkg.files {
 		// Set the state for this run of the walker.
@@ -359,7 +368,7 @@ func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeS
 
 	g.trimValueNames(values, trimPrefix)
 
-	g.transformValueNames(values, transformMethod)
+	g.transformValueNames(values, transformMethod, transformUpperCase)
 
 	if lineComment {
 		g.replaceValuesWithLineComment(values)
