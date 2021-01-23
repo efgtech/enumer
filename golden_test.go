@@ -36,6 +36,7 @@ var golden = []Golden{
 var goldenJSON = []Golden{
 	{"prime with JSON", primeJsonIn, primeJsonOut},
 }
+
 var goldenText = []Golden{
 	{"prime with Text", primeTextIn, primeTextOut},
 }
@@ -478,6 +479,7 @@ func (i Prime) IsAPrime() bool {
 	return ok
 }
 `
+
 const primeJsonIn = `type Prime int
 const (
 	p2 Prime = 2
@@ -1164,7 +1166,7 @@ func runGoldenTest(t *testing.T, test Golden, generateJSON, generateYAML, genera
 	if len(tokens) != 3 {
 		t.Fatalf("%s: need type declaration on first line", test.name)
 	}
-	g.generate(tokens[1], generateJSON, generateYAML, generateSQL, generateText, "noop", prefix, false)
+	g.generate(tokens[1], generateJSON, generateYAML, generateSQL, generateText, "noop", prefix, false, false)
 	got := string(g.format())
 	if got != test.output {
 		t.Errorf("%s: got\n====\n%s====\nexpected\n====%s", test.name, got, test.output)
