@@ -10,7 +10,7 @@ It started as a fork of [Rob Pike’s Stringer tool](https://godoc.org/golang.or
 Enumer can be installed as any other go command:
 
 ```
-go get github.com/alvaroloes/enumer
+go get github.com/efgtech/enumer
 ```
 After that, the `enumer` executable will be in "$GOPATH/bin" folder and you can use it with `go generate`
 
